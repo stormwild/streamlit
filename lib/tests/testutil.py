@@ -21,10 +21,12 @@ from unittest.mock import patch
 
 from streamlit import config
 from streamlit.report_queue import ReportQueue
+from streamlit.report_session import ReportSession
 from streamlit.report_thread import ReportContext
 from streamlit.report_thread import add_report_ctx
 from streamlit.report_thread import get_report_ctx
-from streamlit.widgets import Widgets
+from streamlit.server.server import Server, SessionInfo
+from streamlit.state.widgets import WidgetManager
 from streamlit.uploaded_file_manager import UploadedFileManager
 
 
@@ -83,13 +85,19 @@ class DeltaGeneratorTestCase(unittest.TestCase):
                     session_id="test session id",
                     enqueue=self.report_queue.enqueue,
                     query_string="",
-                    widgets=Widgets(),
+                    widget_mgr=WidgetManager(),
                     uploaded_file_mgr=UploadedFileManager(),
                 ),
+            )
+            Server(None, "", "")
+            Server.get_current()._session_info_by_id["test session id"] = SessionInfo(
+                None,
+                ReportSession(None, "", "", None),
             )
 
     def tearDown(self):
         self.clear_queue()
+        Server._singleton = None
         if self.override_root:
             add_report_ctx(threading.current_thread(), self.orig_report_ctx)
 

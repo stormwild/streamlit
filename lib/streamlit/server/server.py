@@ -93,7 +93,7 @@ class SessionInfo(object):
     the ForwardMsgCache.
     """
 
-    def __init__(self, ws, session):
+    def __init__(self, ws, session: ReportSession):
         """Initialize a SessionInfo instance.
 
         Parameters
@@ -251,6 +251,15 @@ class Server(object):
     @property
     def script_path(self) -> str:
         return self._script_path
+
+    def get_session_by_id(self, session_id: str) -> Optional[ReportSession]:
+        """Return the ReportSession corresponding to the given id, or None if
+        no such session exists."""
+        session_info = self._get_session_info(session_id)
+        if session_info is None:
+            return None
+
+        return session_info.session
 
     def on_files_updated(self, session_id: str) -> None:
         """Event handler for UploadedFileManager.on_file_added.
@@ -669,6 +678,8 @@ class _BrowserWebSocketHandler(tornado.websocket.WebSocketHandler):
                 yield self._session.handle_save_request(self)
             elif msg_type == "rerun_script":
                 self._session.handle_rerun_script_request(msg.rerun_script)
+            elif msg_type == "load_git_info":
+                self._session.handle_git_information_request()
             elif msg_type == "clear_cache":
                 self._session.handle_clear_cache_request()
             elif msg_type == "set_run_on_save":

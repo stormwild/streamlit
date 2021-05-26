@@ -17,8 +17,10 @@ from typing import cast
 import streamlit
 from streamlit.errors import StreamlitAPIException
 from streamlit.proto.Slider_pb2 import Slider as SliderProto
+from streamlit.state.widgets import register_widget
 from streamlit.type_util import ensure_iterable
-from .utils import register_widget
+from streamlit.util import index_
+from .form import current_form_id
 
 
 class SelectSliderMixin:
@@ -100,14 +102,14 @@ class SelectSliderMixin:
 
         # Convert element to index of the elements
         if is_range_value:
-            slider_value = list(map(lambda v: options.index(v), value))  # type: ignore[no-any-return]
+            slider_value = list(map(lambda v: index_(options, v), value))
             start, end = slider_value
             if start > end:
                 slider_value = [end, start]
         else:
             # Simplify future logic by always making value a list
             try:
-                slider_value = [options.index(value)]
+                slider_value = [index_(options, value)]
             except ValueError:
                 if value is not None:
                     raise
@@ -123,10 +125,13 @@ class SelectSliderMixin:
         slider_proto.step = 1  # default for index changes
         slider_proto.data_type = SliderProto.INT
         slider_proto.options[:] = [str(format_func(option)) for option in options]
+        slider_proto.form_id = current_form_id(self.dg)
         if help is not None:
             slider_proto.help = help
 
-        ui_value = register_widget("slider", slider_proto, user_key=key)
+        ui_value, set_frontend_value = register_widget(
+            "slider", slider_proto, user_key=key
+        )
         if ui_value:
             current_value = getattr(ui_value, "data")
         else:
